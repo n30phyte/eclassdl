@@ -26,17 +26,24 @@ class eClass:
 
         response = self.session.get(ECLASS_BASE_URL + "/my")
 
-        if response.url != ECLASS_BASE_URL + "/my" and response.url != ECLASS_BASE_URL + "/my/":
+        if response.url != ECLASS_BASE_URL + "/my/":
             print("Login failed.")
             exit(-1)
+
+        print("Logged in to eclass.")
 
     def get_courses(self):
         homepage = self.session.get(ECLASS_BASE_URL + "/my")
         page_tree = html.fromstring(homepage.content)
         course_elems = page_tree.xpath(r'//div[contains(@class, "currentcourse")]')
 
-        "/html/body/div[3]/div[3]/div/div/section[1]/div/aside/section/div/div/div[2]/div[1]/div/h3/a"
-        return course_elems
+        courses = {}
+
+        for element in course_elems:
+            course = element.xpath(r'.//a')[0]
+            courses[course.attrib['title']] = course.attrib['href']
+
+        return courses
 
     def try_login(self):
         if os.path.isfile(COOKIES_FILE):
@@ -79,6 +86,8 @@ class eClass:
 if __name__ == "__main__":
     eclass = eClass()
 
+    print("Please pick a class from the following: ")
     for course in eclass.get_courses():
         print(course)
 
+    input("Class number:")
