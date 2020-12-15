@@ -4,10 +4,12 @@ import getpass
 import urllib.parse
 from time import sleep
 from random import randint
+import multiprocessing as mp
 
 import requests
 import requests.utils
 from lxml import html
+from progress.bar import Bar
 
 PATH = os.getcwd()
 COOKIES_FILE = os.path.join(PATH, "cookies.json")
@@ -16,8 +18,14 @@ UALBERTA_APPS_URL = "https://apps.ualberta.ca"
 
 ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
 
+MIME_TYPES = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
+
 
 class eClass:
+    progress = 0
 
     def __init__(self):
         print("Checking cookies")
@@ -42,8 +50,8 @@ class eClass:
         courses = {}
 
         for element in course_elems:
-            course = element.xpath(r'.//a')[0]
-            courses[course.attrib['title']] = course.attrib['href']
+            course = element.xpath(r".//a")[0]
+            courses[course.attrib["title"]] = course.attrib["href"]
 
         return courses
 
@@ -65,23 +73,29 @@ class eClass:
             login_tree = html.fromstring(response.content)
 
             hidden_elements = login_tree.xpath(r'//form//input[@type="hidden"]')
-            payload = {item.attrib['name']: item.attrib['value'] for item in hidden_elements}
+            payload = {
+                item.attrib["name"]: item.attrib["value"] for item in hidden_elements
+            }
 
-            payload['username'] = username
-            payload['password'] = password
+            payload["username"] = username
+            payload["password"] = password
 
             saml_redirect = self.session.post(response.url, data=payload)
 
             redirect_tree = html.fromstring(saml_redirect.content)
 
-            redirect_target = redirect_tree.xpath(r'//form//@action')
+            redirect_target = redirect_tree.xpath(r"//form//@action")
             redirect_elements = redirect_tree.xpath(r'//form//input[@type="hidden"]')
-            redirect_payload = {item.attrib['name']: item.attrib['value'] for item in redirect_elements}
+            redirect_payload = {
+                item.attrib["name"]: item.attrib["value"] for item in redirect_elements
+            }
 
             self.session.post(redirect_target[0], data=redirect_payload)
 
-            with open(COOKIES_FILE, 'w') as cookies:
-                json.dump(requests.utils.dict_from_cookiejar(self.session.cookies), cookies)
+            with open(COOKIES_FILE, "w") as cookies:
+                json.dump(
+                    requests.utils.dict_from_cookiejar(self.session.cookies), cookies
+                )
 
     def get_course_content(self, url):
         course_page = self.session.get(url)
@@ -92,15 +106,15 @@ class eClass:
 
         links = set()
 
-        for link in main_area[0].xpath(r'.//a'):
-            links.add(link.attrib['href'])
+        for link in main_area[0].xpath(r".//a"):
+            links.add(link.attrib["href"])
 
         cleaned_links = [link for link in links if "mod/resource" in link]
 
         return cleaned_links
 
     def download_course_content(self, course_name, links):
-        name = ''.join(course_name.split()[:2])
+        name = "".join(course_name.split()[:2])
         download_dir = os.path.join(PATH, name)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
@@ -108,17 +122,17 @@ class eClass:
         for item in links:
             file_header = self.session.head(item, allow_redirects=True)
 
-            if file_header.headers.get('content-type') == 'application/pdf':
+            if file_header.headers.get("content-type") in MIME_TYPES:
 
-                filename = urllib.parse.unquote(file_header.url.split('/')[-1])
+                filename = urllib.parse.unquote(file_header.url.split("/")[-1])
                 file_path = os.path.join(download_dir, filename)
 
                 with self.session.get(file_header.url, stream=True) as r:
-                    with open(file_path, 'wb') as new_file:
+                    with open(file_path, "wb") as new_file:
                         for chunk in r.iter_content(chunk_size=8192):
                             new_file.write(chunk)
 
-                sleep(randint(1, 10))
+                sleep(randint(1, 2))
 
 
 if __name__ == "__main__":
