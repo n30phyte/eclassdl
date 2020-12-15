@@ -2,6 +2,8 @@ import json
 import os
 import getpass
 import urllib.parse
+from time import sleep
+from random import randint
 
 import requests
 import requests.utils
@@ -80,14 +82,64 @@ class eClass:
 
             with open(COOKIES_FILE, 'w') as cookies:
                 json.dump(requests.utils.dict_from_cookiejar(self.session.cookies), cookies)
-        pass
+
+    def get_course_content(self, url):
+        course_page = self.session.get(url)
+
+        page_tree = html.fromstring(course_page.content)
+
+        main_area = page_tree.xpath(r'//section[@id="region-main"]')
+
+        links = set()
+
+        for link in main_area[0].xpath(r'.//a'):
+            links.add(link.attrib['href'])
+
+        cleaned_links = [link for link in links if "mod/resource" in link]
+
+        return cleaned_links
+
+    def download_course_content(self, course_name, links):
+        name = ''.join(course_name.split()[:2])
+        download_dir = os.path.join(PATH, name)
+        if not os.path.exists(download_dir):
+            os.makedirs(download_dir)
+
+        for item in links:
+            file_header = self.session.head(item, allow_redirects=True)
+
+            if file_header.headers.get('content-type') == 'application/pdf':
+
+                filename = urllib.parse.unquote(file_header.url.split('/')[-1])
+                file_path = os.path.join(download_dir, filename)
+
+                with self.session.get(file_header.url, stream=True) as r:
+                    with open(file_path, 'wb') as new_file:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            new_file.write(chunk)
+
+                sleep(randint(1, 10))
 
 
 if __name__ == "__main__":
     eclass = eClass()
 
     print("Please pick a class from the following: ")
-    for course in eclass.get_courses():
-        print(course)
 
-    input("Class number:")
+    course_list = eclass.get_courses()
+    key_list = list(course_list)
+
+    while True:
+        for course in key_list:
+            print(course)
+
+        print("0 to exit.")
+        target = input(f"Class number (1-{len(course_list)}): ")
+
+        if int(target) == 0:
+            exit(0)
+        else:
+            course = key_list[int(target) - 1]
+            course_url = course_list[course]
+            links = eclass.get_course_content(course_url)
+            eclass.download_course_content(course, links)
