@@ -140,5 +140,4 @@ cython_debug/
 
 cookies.json
 
-*.pdf
-*.PDF
+classes/*
