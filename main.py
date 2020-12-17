@@ -156,8 +156,10 @@ if __name__ == "__main__":
         for course in key_list:
             print("{0} : {1}".format(count, course))
             count += 1
-
-        print("exit to quit, all to download all, add spaces between numbers for multiple selections")
+        print()
+        print("all : Downloads all classes")
+        print("exit : Quits the program")
+        print("Multiple classes can be selected with spaces `1 3 5`")
         targets = input(f"Class numbers (1-{len(course_list)}): ")
         targets = targets.split(" ")
         if targets[0].lower() == "exit":
