@@ -110,7 +110,10 @@ class eClass:
         links = set()
 
         for link in main_area[0].xpath(r".//a"):
-            links.add(link.attrib["href"])
+            try:
+                links.add(link.attrib["href"])
+            except:
+                None
 
         cleaned_links = [link for link in links if re.search(r"mod/resource|mod_label|{}".format('|'.join(EXTENSIONS)), link, re.IGNORECASE)]
 
@@ -146,20 +149,37 @@ if __name__ == "__main__":
 
     course_list = eclass.get_courses()
     key_list = list(course_list)
-
-    while True:
+    toDownload = []
+    getInput = True
+    while getInput:
         count = 1
         for course in key_list:
             print("{0} : {1}".format(count, course))
-            count += 1;
-
-        print("0 to exit.")
-        target = input(f"Class number (1-{len(course_list)}): ")
-
-        if int(target) == 0:
+            count += 1
+        print()
+        print("all : Downloads all classes")
+        print("exit : Quits the program")
+        print("Multiple classes can be selected with spaces `1 3 5`")
+        targets = input(f"Class numbers (1-{len(course_list)}): ")
+        targets = targets.split(" ")
+        if targets[0].lower() == "exit":
             exit(0)
+        elif targets[0].lower() == "all":
+            toDownload = list(range(0, len(course_list)))
+            getInput = False
         else:
-            course = key_list[int(target) - 1]
+            getInput = False
+            for target in targets:
+                if target.isdigit() and int(target) in range(1, len(course_list)+1):
+                    toDownload.append(int(target) - 1)
+                else:
+                    print("{0} is invalid!".format(target))
+                    getInput = True
+
+    for index in toDownload:
+            course = key_list[index]
+            print("Downloading: {0}".format(course))
             course_url = course_list[course]
             links = eclass.get_course_content(course_url)
             eclass.download_course_content(course, links)
+    print("Done!")
