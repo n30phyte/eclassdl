@@ -150,31 +150,32 @@ if __name__ == "__main__":
     course_list = eclass.get_courses()
     key_list = list(course_list)
     toDownload = []
-    while True:
+    getInput = True
+    while getInput:
         count = 1
         for course in key_list:
             print("{0} : {1}".format(count, course))
-            count += 1;
+            count += 1
 
         print("exit to quit, all to download all, add spaces between numbers for multiple selections")
-        targets = input(f"Class number (1 to {len(course_list)}): ")
+        targets = input(f"Class numbers (1-{len(course_list)}): ")
         targets = targets.split(" ")
         if targets[0].lower() == "exit":
             exit(0)
         elif targets[0].lower() == "all":
-            toDownload = list(range(1, len(course_list)))
-            break;
+            toDownload = list(range(0, len(course_list)))
+            getInput = False
         else:
+            getInput = False
             for target in targets:
-                if target.isdigit() and int(target) in range(1, len(course_list)):
-                    toDownload.append(int(target))
+                if target.isdigit() and int(target) in range(1, len(course_list)+1):
+                    toDownload.append(int(target) - 1)
                 else:
                     print("{0} is invalid!".format(target))
-                    continue;
-            break;
+                    getInput = True
 
     for index in toDownload:
-            course = key_list[index - 1]
+            course = key_list[index]
             print("Downloading: {0}".format(course))
             course_url = course_list[course]
             links = eclass.get_course_content(course_url)
