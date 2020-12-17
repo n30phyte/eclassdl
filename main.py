@@ -2,6 +2,7 @@ import json
 import os
 import getpass
 import urllib.parse
+import re
 from time import sleep
 from random import randint
 import multiprocessing as mp
@@ -9,19 +10,21 @@ import multiprocessing as mp
 import requests
 import requests.utils
 from lxml import html
-from progress.bar import Bar
 
 PATH = os.getcwd()
+OUTPUT_FOLDER = "classes"
 COOKIES_FILE = os.path.join(PATH, "cookies.json")
 
 UALBERTA_APPS_URL = "https://apps.ualberta.ca"
 
 ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
 
+
+EXTENSIONS = ["pdf","txt","sql","doc"]
 MIME_TYPES = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application","image","text"
 ]
+
 
 
 class eClass:
@@ -109,22 +112,23 @@ class eClass:
         for link in main_area[0].xpath(r".//a"):
             links.add(link.attrib["href"])
 
-        cleaned_links = [link for link in links if "mod/resource" in link]
+        cleaned_links = [link for link in links if re.search(r"mod/resource|mod_label|{}".format('|'.join(EXTENSIONS)), link, re.IGNORECASE)]
 
         return cleaned_links
 
     def download_course_content(self, course_name, links):
         name = "".join(course_name.split()[:2])
-        download_dir = os.path.join(PATH, name)
+        download_dir = os.path.join(PATH, OUTPUT_FOLDER, name)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
 
         for item in links:
             file_header = self.session.head(item, allow_redirects=True)
 
-            if file_header.headers.get("content-type") in MIME_TYPES:
+            if re.search(r"{}".format("|".join(MIME_TYPES)), file_header.headers.get("content-type")):
 
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
+                filename = re.sub(r"\?time=\d*", '', filename)
                 file_path = os.path.join(download_dir, filename)
 
                 with self.session.get(file_header.url, stream=True) as r:
@@ -144,8 +148,10 @@ if __name__ == "__main__":
     key_list = list(course_list)
 
     while True:
+        count = 1
         for course in key_list:
-            print(course)
+            print("{0} : {1}".format(count, course))
+            count += 1;
 
         print("0 to exit.")
         target = input(f"Class number (1-{len(course_list)}): ")
