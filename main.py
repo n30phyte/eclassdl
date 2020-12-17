@@ -110,7 +110,10 @@ class eClass:
         links = set()
 
         for link in main_area[0].xpath(r".//a"):
-            links.add(link.attrib["href"])
+            try:
+                links.add(link.attrib["href"])
+            except:
+                None
 
         cleaned_links = [link for link in links if re.search(r"mod/resource|mod_label|{}".format('|'.join(EXTENSIONS)), link, re.IGNORECASE)]
 
@@ -146,20 +149,34 @@ if __name__ == "__main__":
 
     course_list = eclass.get_courses()
     key_list = list(course_list)
-
+    toDownload = []
     while True:
         count = 1
         for course in key_list:
             print("{0} : {1}".format(count, course))
             count += 1;
 
-        print("0 to exit.")
-        target = input(f"Class number (1-{len(course_list)}): ")
-
-        if int(target) == 0:
+        print("exit to quit, all to download all, add spaces between numbers for multiple selections")
+        targets = input(f"Class number (1 to {len(course_list)}): ")
+        targets = targets.split(" ")
+        if targets[0].lower() == "exit":
             exit(0)
+        elif targets[0].lower() == "all":
+            toDownload = list(range(1, len(course_list)))
+            break;
         else:
-            course = key_list[int(target) - 1]
+            for target in targets:
+                if target.isdigit() and int(target) in range(1, len(course_list)):
+                    toDownload.append(int(target))
+                else:
+                    print("{0} is invalid!".format(target))
+                    continue;
+            break;
+
+    for index in toDownload:
+            course = key_list[index - 1]
+            print("Downloading: {0}".format(course))
             course_url = course_list[course]
             links = eclass.get_course_content(course_url)
             eclass.download_course_content(course, links)
+    print("Done!")
