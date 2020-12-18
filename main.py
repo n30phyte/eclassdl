@@ -60,8 +60,13 @@ class eClass:
             with open(COOKIES_FILE) as cookies:
                 self.cookies = requests.utils.cookiejar_from_dict(json.load(cookies))
                 self.session.cookies.update(self.cookies)
+                self.session.cookies.clear_expired_cookies()
 
-        response = self.session.get(ECLASS_BASE_URL + "/my")
+        try:
+            response = self.session.get(ECLASS_BASE_URL + "/my")
+        except:
+            self.session.cookies.clear()
+            response = self.session.get(ECLASS_BASE_URL + "/my")
 
         if "login.ualberta.ca" in response.url:
             # Cookies out of date or nonexistent
