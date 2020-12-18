@@ -14,7 +14,7 @@ Don't upload course files to chegg/coursehero/oneclass please. Those sites are g
 
 ### Usage instructions
 
-Currently only tested on python 3.9 but should work on anything above 3.7
+Currently only tested on Python 3.6-3.9
 
 ```bash
 pip3 install -r requirements.txt
