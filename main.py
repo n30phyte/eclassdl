@@ -2,6 +2,7 @@ import json
 import os
 import getpass
 import urllib.parse
+import re
 from time import sleep
 from random import randint
 import multiprocessing as mp
@@ -9,19 +10,21 @@ import multiprocessing as mp
 import requests
 import requests.utils
 from lxml import html
-from progress.bar import Bar
 
 PATH = os.getcwd()
+OUTPUT_FOLDER = "classes"
 COOKIES_FILE = os.path.join(PATH, "cookies.json")
 
 UALBERTA_APPS_URL = "https://apps.ualberta.ca"
 
 ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
 
+
+EXTENSIONS = ["pdf","txt","sql","doc"]
 MIME_TYPES = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application","image","text"
 ]
+
 
 
 class eClass:
@@ -112,24 +115,28 @@ class eClass:
         links = set()
 
         for link in main_area[0].xpath(r".//a"):
-            links.add(link.attrib["href"])
+            try:
+                links.add(link.attrib["href"])
+            except:
+                None
 
-        cleaned_links = [link for link in links if "mod/resource" in link]
+        cleaned_links = [link for link in links if re.search(r"mod/resource|mod_label|{}".format('|'.join(EXTENSIONS)), link, re.IGNORECASE)]
 
         return cleaned_links
 
     def download_course_content(self, course_name, links):
         name = "".join(course_name.split()[:2])
-        download_dir = os.path.join(PATH, name)
+        download_dir = os.path.join(PATH, OUTPUT_FOLDER, name)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
 
         for item in links:
             file_header = self.session.head(item, allow_redirects=True)
 
-            if file_header.headers.get("content-type") in MIME_TYPES:
+            if re.search(r"{}".format("|".join(MIME_TYPES)), file_header.headers.get("content-type")):
 
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
+                filename = re.sub(r"\?time=\d*", '', filename)
                 file_path = os.path.join(download_dir, filename)
 
                 with self.session.get(file_header.url, stream=True) as r:
@@ -147,18 +154,37 @@ if __name__ == "__main__":
 
     course_list = eclass.get_courses()
     key_list = list(course_list)
-
-    while True:
+    toDownload = []
+    getInput = True
+    while getInput:
+        count = 1
         for course in key_list:
-            print(course)
-
-        print("0 to exit.")
-        target = input(f"Class number (1-{len(course_list)}): ")
-
-        if int(target) == 0:
+            print("{0} : {1}".format(count, course))
+            count += 1
+        print()
+        print("all : Downloads all classes")
+        print("exit : Quits the program")
+        print("Multiple classes can be selected with spaces `1 3 5`")
+        targets = input(f"Class numbers (1-{len(course_list)}): ")
+        targets = targets.split(" ")
+        if targets[0].lower() == "exit":
             exit(0)
+        elif targets[0].lower() == "all":
+            toDownload = list(range(0, len(course_list)))
+            getInput = False
         else:
-            course = key_list[int(target) - 1]
+            getInput = False
+            for target in targets:
+                if target.isdigit() and int(target) in range(1, len(course_list)+1):
+                    toDownload.append(int(target) - 1)
+                else:
+                    print("{0} is invalid!".format(target))
+                    getInput = True
+
+    for index in toDownload:
+            course = key_list[index]
+            print("Downloading: {0}".format(course))
             course_url = course_list[course]
             links = eclass.get_course_content(course_url)
             eclass.download_course_content(course, links)
+    print("Done!")
