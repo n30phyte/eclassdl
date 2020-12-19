@@ -20,11 +20,8 @@ UALBERTA_APPS_URL = "https://apps.ualberta.ca"
 ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
 
 
-EXTENSIONS = ["pdf","txt","sql","doc"]
-MIME_TYPES = [
-    "application","image","text"
-]
-
+EXTENSIONS = ["pdf", "txt", "sql", "doc"]
+MIME_TYPES = ["application", "image", "text"]
 
 
 class eClass:
@@ -120,7 +117,15 @@ class eClass:
             except:
                 None
 
-        cleaned_links = [link for link in links if re.search(r"mod/resource|mod_label|{}".format('|'.join(EXTENSIONS)), link, re.IGNORECASE)]
+        cleaned_links = [
+            link
+            for link in links
+            if re.search(
+                r"mod/resource|mod_label|{}".format("|".join(EXTENSIONS)),
+                link,
+                re.IGNORECASE,
+            )
+        ]
 
         return cleaned_links
 
@@ -133,10 +138,13 @@ class eClass:
         for item in links:
             file_header = self.session.head(item, allow_redirects=True)
 
-            if re.search(r"{}".format("|".join(MIME_TYPES)), file_header.headers.get("content-type")):
+            if re.search(
+                r"{}".format("|".join(MIME_TYPES)),
+                file_header.headers.get("content-type"),
+            ):
 
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
-                filename = re.sub(r"\?time=\d*", '', filename)
+                filename = re.sub(r"\?time=\d*", "", filename)
                 file_path = os.path.join(download_dir, filename)
 
                 with self.session.get(file_header.url, stream=True) as r:
@@ -175,16 +183,16 @@ if __name__ == "__main__":
         else:
             getInput = False
             for target in targets:
-                if target.isdigit() and int(target) in range(1, len(course_list)+1):
+                if target.isdigit() and int(target) in range(1, len(course_list) + 1):
                     toDownload.append(int(target) - 1)
                 else:
                     print("{0} is invalid!".format(target))
                     getInput = True
 
     for index in toDownload:
-            course = key_list[index]
-            print("Downloading: {0}".format(course))
-            course_url = course_list[course]
-            links = eclass.get_course_content(course_url)
-            eclass.download_course_content(course, links)
+        course = key_list[index]
+        print("Downloading: {0}".format(course))
+        course_url = course_list[course]
+        links = eclass.get_course_content(course_url)
+        eclass.download_course_content(course, links)
     print("Done!")
