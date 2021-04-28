@@ -23,6 +23,28 @@ ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
 EXTENSIONS = ["pdf", "txt", "sql", "doc"]
 MIME_TYPES = ["application", "image", "text"]
 
+# https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
 class eClass:
     progress = 0
@@ -134,25 +156,29 @@ class eClass:
         download_dir = os.path.join(PATH, OUTPUT_FOLDER, name)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
-
+        count = 0
+        oldcount = 0
+        maxcount = len(links)
         for item in links:
+            printProgressBar(count, maxcount, prefix = 'Progress:', suffix = '', length = 50)
+            oldcount = count
+            count += 1
             file_header = self.session.head(item, allow_redirects=True)
-
             if re.search(
                 r"{}".format("|".join(MIME_TYPES)),
                 file_header.headers.get("content-type"),
             ):
-
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
                 filename = re.sub(r"\?time=\d*", "", filename)
                 file_path = os.path.join(download_dir, filename)
-
+                printProgressBar(oldcount, maxcount, prefix = 'Progress:', suffix = '{:10.10}'.format(filename), length = 50)
                 with self.session.get(file_header.url, stream=True) as r:
                     with open(file_path, "wb") as new_file:
                         for chunk in r.iter_content(chunk_size=8192):
                             new_file.write(chunk)
 
                 sleep(randint(1, 2))
+        printProgressBar(count, maxcount, prefix = 'Progress:', suffix = '{:10.10}'.format('Done!'), length = 50)
 
 
 if __name__ == "__main__":
