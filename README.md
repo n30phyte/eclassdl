@@ -14,13 +14,14 @@ Don't upload course files to chegg/coursehero/oneclass please. Those sites are g
 
 ### Usage instructions
 
-Currently only tested on Python 3.6-3.9
+Currently only tested on Python 3.6-3.10
+
+Please use [Poetry](https://python-poetry.org/docs/master/#installation) for dependency management.
 
 ```bash
-pip3 install -r requirements.txt
-python3 main.py
+poetry run 
 ```
 
 #### To UAlberta admins that find this
 
-Send me a pm if you want me to take it down
+Send me a PM if you want me to take it down

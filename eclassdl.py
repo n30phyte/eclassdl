@@ -181,7 +181,7 @@ class eClass:
         printProgressBar(count, maxcount, prefix = 'Progress:', suffix = '{:10.10}'.format('Done!'), length = 50)
 
 
-if __name__ == "__main__":
+def main():
     eclass = eClass()
 
     print("Please pick a class from the following: ")
@@ -222,3 +222,6 @@ if __name__ == "__main__":
         links = eclass.get_course_content(course_url)
         eclass.download_course_content(course, links)
     print("Done!")
+
+if __name__ == "__main__":
+    main()
