@@ -1,31 +1,38 @@
+import getpass
 import json
 import os
-import getpass
-import urllib.parse
 import re
-from time import sleep
+import urllib.parse
 from random import randint
-import multiprocessing as mp
+from time import sleep
 
 import requests
 import requests.utils
 from lxml import html
+from pathvalidate import sanitize_filename
 
 PATH = os.getcwd()
 OUTPUT_FOLDER = "classes"
 COOKIES_FILE = os.path.join(PATH, "cookies.json")
 
 UALBERTA_APPS_URL = "https://apps.ualberta.ca"
-
 ECLASS_BASE_URL = "https://eclass.srv.ualberta.ca"
-
 
 EXTENSIONS = ["pdf", "txt", "sql", "doc"]
 MIME_TYPES = ["application", "image", "text"]
 
 # https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
 # Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def printProgressBar(
+    iteration,
+    total,
+    prefix="",
+    suffix="",
+    decimals=1,
+    length=100,
+    fill="█",
+    printEnd="\r",
+):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -40,11 +47,12 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    bar = fill * filledLength + "-" * (length - filledLength)
+    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=printEnd)
     # Print New Line on Complete
     if iteration == total:
         print()
+
 
 class eClass:
     progress = 0
@@ -160,7 +168,7 @@ class eClass:
         oldcount = 0
         maxcount = len(links)
         for item in links:
-            printProgressBar(count, maxcount, prefix = 'Progress:', suffix = '', length = 50)
+            printProgressBar(count, maxcount, prefix="Progress:", suffix="", length=50)
             oldcount = count
             count += 1
             file_header = self.session.head(item, allow_redirects=True)
@@ -170,15 +178,29 @@ class eClass:
             ):
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
                 filename = re.sub(r"\?time=\d*", "", filename)
+                filename = sanitize_filename(filename)
+
                 file_path = os.path.join(download_dir, filename)
-                printProgressBar(oldcount, maxcount, prefix = 'Progress:', suffix = '{:10.10}'.format(filename), length = 50)
+                printProgressBar(
+                    oldcount,
+                    maxcount,
+                    prefix="Progress:",
+                    suffix="{:10.10}".format(filename),
+                    length=50,
+                )
                 with self.session.get(file_header.url, stream=True) as r:
                     with open(file_path, "wb") as new_file:
                         for chunk in r.iter_content(chunk_size=8192):
                             new_file.write(chunk)
 
                 sleep(randint(1, 2))
-        printProgressBar(count, maxcount, prefix = 'Progress:', suffix = '{:10.10}'.format('Done!'), length = 50)
+        printProgressBar(
+            count,
+            maxcount,
+            prefix="Progress:",
+            suffix="{:10.10}".format("Done!"),
+            length=50,
+        )
 
 
 def main():
@@ -222,6 +244,7 @@ def main():
         links = eclass.get_course_content(course_url)
         eclass.download_course_content(course, links)
     print("Done!")
+
 
 if __name__ == "__main__":
     main()
