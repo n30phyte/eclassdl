@@ -3,6 +3,7 @@ import json
 import os
 import re
 import urllib.parse
+import shutil
 from random import randint
 from time import sleep
 
@@ -11,7 +12,11 @@ import requests.utils
 from lxml import html
 from pathvalidate import sanitize_filename
 
+
+# "\<div\sclass\=\"resourceworkaround\"\>Click\s\<a\shref=\"(.*)\"\sonclick\=\"this\.target=\'\_blank\'\"\>"gm
+
 PATH = os.getcwd()
+CACHE = "cache"
 OUTPUT_FOLDER = "classes"
 COOKIES_FILE = os.path.join(PATH, "cookies.json")
 
@@ -162,8 +167,11 @@ class eClass:
     def download_course_content(self, course_name, links):
         name = "".join(course_name.split()[:2])
         download_dir = os.path.join(PATH, OUTPUT_FOLDER, name)
+        cache_dir = os.path.join(download_dir, CACHE)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
         count = 0
         oldcount = 0
         maxcount = len(links)
@@ -171,6 +179,9 @@ class eClass:
             printProgressBar(count, maxcount, prefix="Progress:", suffix="", length=50)
             oldcount = count
             count += 1
+
+            download_redirect = False
+
             file_header = self.session.head(item, allow_redirects=True)
             if re.search(
                 r"{}".format("|".join(MIME_TYPES)),
@@ -181,6 +192,13 @@ class eClass:
                 filename = sanitize_filename(filename)
 
                 file_path = os.path.join(download_dir, filename)
+                if re.search(
+                    r"view\.php\?",
+                    file_header.url,
+                ):
+                    download_redirect = True
+                    file_path = os.path.join(cache_dir, filename)
+
                 printProgressBar(
                     oldcount,
                     maxcount,
@@ -188,10 +206,45 @@ class eClass:
                     suffix="{:10.10}".format(filename),
                     length=50,
                 )
+
                 with self.session.get(file_header.url, stream=True) as r:
                     with open(file_path, "wb") as new_file:
                         for chunk in r.iter_content(chunk_size=8192):
                             new_file.write(chunk)
+
+                if download_redirect:
+                    find_file = re.compile("\<div\sclass\=\"resourceworkaround\"\>Click\s\<a\shref=\"(.*)\"\sonclick\=\"this\.target=\'\_blank\'\"\>")
+                    cache_path = file_path
+                    with open(cache_path, "r", encoding='utf-8') as cache_read:
+                        for line in cache_read:
+                            found = find_file.search(line)
+                            if found:
+                                new_link = found.group(1)
+                                
+                                file_header = self.session.head(new_link, allow_redirects=True)
+                                if re.search(
+                                    r"{}".format("|".join(MIME_TYPES)),
+                                    file_header.headers.get("content-type"),
+                                ):
+                                    filename = urllib.parse.unquote(file_header.url.split("/")[-1])
+                                    filename = re.sub(r"\?time=\d*", "", filename)
+                                    filename = sanitize_filename(filename)
+
+                                    file_path = os.path.join(download_dir, filename)
+
+                                    printProgressBar(
+                                        oldcount+0.5,
+                                        maxcount,
+                                        prefix="Progress:",
+                                        suffix="{:10.10}".format(filename),
+                                        length=50,
+                                    )
+
+                                    with self.session.get(file_header.url, stream=True) as r:
+                                        with open(file_path, "wb") as new_file:
+                                            for chunk in r.iter_content(chunk_size=8192):
+                                                new_file.write(chunk)
+
 
                 sleep(randint(1, 2))
         printProgressBar(
@@ -201,6 +254,15 @@ class eClass:
             suffix="{:10.10}".format("Done!"),
             length=50,
         )
+
+    def clean_cache(self, course_name):
+        links = set()
+        name = "".join(course_name.split()[:2])
+        cache_dir = os.path.join(PATH, OUTPUT_FOLDER, name, CACHE)
+        try:
+            shutil.rmtree(cache_dir)
+        except OSError as e:
+            print("Error: %s : %s" % (cache_dir, e.strerror))
 
 
 def main():
@@ -243,6 +305,7 @@ def main():
         course_url = course_list[course]
         links = eclass.get_course_content(course_url)
         eclass.download_course_content(course, links)
+        eclass.clean_cache(course)
     print("Done!")
 
 
