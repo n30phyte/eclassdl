@@ -12,7 +12,7 @@ Don't upload course files to chegg/coursehero/oneclass please. Those sites are g
 
 ![why](https://imgs.xkcd.com/comics/automation.png)
 
-### Usage instructions
+### Usage instructions using Poetry
 
 Currently only tested on Python 3.6-3.10
 
@@ -20,6 +20,13 @@ Please use [Poetry](https://python-poetry.org/docs/master/#installation) for dep
 
 ```bash
 poetry run 
+```
+
+### Usage instructions using Pip
+
+```bash
+pip3 install -r requirments.txt
+python3 eclassdl.py 
 ```
 
 #### To UAlberta admins that find this

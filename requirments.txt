@@ -1,0 +1,3 @@
+requests~=2.26.0
+lxml~=4.6.4
+pathvalidate~=2.5.0
