@@ -152,11 +152,31 @@ class eClass:
             except:
                 None
 
-        cleaned_links = [
+        sub_links = set()
+
+        for link in links:
+            if re.search(r"mod/assign", link, re.IGNORECASE):
+                sub_links.update(self.get_course_content(link))
+
+        links.update(sub_links)
+
+        pre_cleaned_links = [
             link
             for link in links
             if re.search(
-                r"mod/resource|mod_label|{}".format("|".join(EXTENSIONS)),
+                r"mod/resource|mod_label|introattachment|\.{}".format(
+                    "|\.".join(EXTENSIONS)
+                ),
+                link,
+                re.IGNORECASE,
+            )
+        ]
+
+        cleaned_links = [
+            link
+            for link in pre_cleaned_links
+            if not re.search(
+                r"assignfeedback|assignsubmission",
                 link,
                 re.IGNORECASE,
             )
@@ -189,6 +209,7 @@ class eClass:
             ):
                 filename = urllib.parse.unquote(file_header.url.split("/")[-1])
                 filename = re.sub(r"\?time=\d*", "", filename)
+                filename = re.sub(r"forcedownload=\d", "", filename)
                 filename = sanitize_filename(filename)
 
                 file_path = os.path.join(download_dir, filename)
@@ -213,38 +234,47 @@ class eClass:
                             new_file.write(chunk)
 
                 if download_redirect:
-                    find_file = re.compile("\<div\sclass\=\"resourceworkaround\"\>Click\s\<a\shref=\"(.*)\"\sonclick\=\"this\.target=\'\_blank\'\"\>")
+                    find_file = re.compile(
+                        '\<div\sclass\="resourceworkaround"\>Click\s\<a\shref="(.*)"\sonclick\="this\.target=\'\_blank\'"\>'
+                    )
                     cache_path = file_path
-                    with open(cache_path, "r", encoding='utf-8') as cache_read:
+                    with open(cache_path, "r", encoding="utf-8") as cache_read:
                         for line in cache_read:
                             found = find_file.search(line)
                             if found:
                                 new_link = found.group(1)
-                                
-                                file_header = self.session.head(new_link, allow_redirects=True)
+
+                                file_header = self.session.head(
+                                    new_link, allow_redirects=True
+                                )
                                 if re.search(
                                     r"{}".format("|".join(MIME_TYPES)),
                                     file_header.headers.get("content-type"),
                                 ):
-                                    filename = urllib.parse.unquote(file_header.url.split("/")[-1])
+                                    filename = urllib.parse.unquote(
+                                        file_header.url.split("/")[-1]
+                                    )
                                     filename = re.sub(r"\?time=\d*", "", filename)
                                     filename = sanitize_filename(filename)
 
                                     file_path = os.path.join(download_dir, filename)
 
                                     printProgressBar(
-                                        oldcount+0.5,
+                                        oldcount + 0.5,
                                         maxcount,
                                         prefix="Progress:",
                                         suffix="{:10.10}".format(filename),
                                         length=50,
                                     )
 
-                                    with self.session.get(file_header.url, stream=True) as r:
+                                    with self.session.get(
+                                        file_header.url, stream=True
+                                    ) as r:
                                         with open(file_path, "wb") as new_file:
-                                            for chunk in r.iter_content(chunk_size=8192):
+                                            for chunk in r.iter_content(
+                                                chunk_size=8192
+                                            ):
                                                 new_file.write(chunk)
-
 
                 sleep(randint(1, 2))
         printProgressBar(
@@ -307,6 +337,7 @@ def main():
         eclass.download_course_content(course, links)
         eclass.clean_cache(course)
     print("Done!")
+    input("Press Enter to Exit")
 
 
 if __name__ == "__main__":
