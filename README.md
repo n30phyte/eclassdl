@@ -19,7 +19,7 @@ Currently only tested on Python 3.6-3.10
 Please use [Poetry](https://python-poetry.org/docs/master/#installation) for dependency management.
 
 ```bash
-poetry run 
+poetry run eclassdl
 ```
 
 ### Usage instructions using Pip
