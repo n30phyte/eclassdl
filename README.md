@@ -1,5 +1,8 @@
 # UAlberta eClass downloader
 
+## ARCHIVED
+I'm no longer a student at the U of A, feel free to fork and update as necessary.
+
 This is a script to download pdf files from eclass, you guys might find it useful especially during COVID.
 
 Try to use it sparingly, don't hammer the damn page. I don't want to get expelled for this.
@@ -28,7 +31,3 @@ poetry run eclassdl
 pip3 install -r requirments.txt
 python3 eclassdl.py 
 ```
-
-#### To UAlberta admins that find this
-
-Send me a PM if you want me to take it down
