@@ -19,13 +19,16 @@ Don't upload course files to chegg/coursehero/oneclass please. Those sites are g
 
 Currently only tested on Python 3.6-3.10
 
-Please use [Poetry](https://python-poetry.org/docs/master/#installation) for dependency management.
+Try [Poetry](https://python-poetry.org/docs/master/#installation) for dependency management.
 
+From the src directory run
 ```bash
 poetry run eclassdl
 ```
 
 ### Usage instructions using Pip
+
+From the src directory
 
 ```bash
 pip3 install -r requirments.txt
